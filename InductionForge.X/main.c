@@ -18,7 +18,7 @@
 #include <stdbool.h>       /* Includes true/false definition                  */
 
 #include "system.h"        /* System funct/params, like osc/peripheral config */
-#include "user.h"          /* User funct/params, such as InitApp              */
+#include "debounce.h"      /* User functions for software input debouncing    */
 
 /******************************************************************************/
 /* Global Variable Declaration                                                */
@@ -31,7 +31,12 @@
 /******************************************************************************/
 
 int16_t main(void)
-{    
+{   
+    unsigned int inputAlatch, inputBlatch; 
+    
+    Nop();
+    Nop();
+    RCON = 0;
     /* Configure the oscillator for the device */
     ConfigureOscillator();
 
@@ -42,6 +47,30 @@ int16_t main(void)
 
     while(1)
     {
-        Nop();
+        // Check RB0 input and increment PTPER
+        if (InputA(PORTAbits.RA0) == 1) 
+            // Only action the input on a new press
+            while (inputAlatch != 1)    
+            {
+                PTPER = PTPER + 10;
+                PDC1 = PTPER / 2;
+                inputAlatch = 1;
+            }
+        // Otherwise clear the input latch
+        else
+            inputAlatch = 0;
+        
+        // Check RB1 input and decrement PTPER
+        if (InputB(PORTAbits.RA1) == 1)
+            // Only action the input on a new press
+            while (inputBlatch != 1)
+            {
+                PTPER = PTPER - 10;
+                PDC1 = PTPER / 2;                
+                inputBlatch = 1;
+            }
+        // Otherwise clear the input latch
+        else
+            inputBlatch = 0;
     }
 }
